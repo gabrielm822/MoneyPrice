@@ -3,79 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONEYPRICE | Ultra Terminal v4.0</title>
+    <title>MONEYPRICE | Elite Terminal v5.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { background: #000; color: #eee; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        .glass { background: rgba(10, 10, 10, 0.9); border: 1px solid #1a1a1a; }
-        #tv-chart { flex-grow: 1; }
+        .glass { background: rgba(10, 10, 10, 0.95); border: 1px solid #1a1a1a; }
         .neon-text { color: #8b5cf6; text-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
-        .news-ticker { white-space: nowrap; animation: ticker 30s linear infinite; }
+        .order-book-red { color: #f87171; }
+        .order-book-green { color: #4ade80; }
+        #tv-chart { flex-grow: 1; height: 100%; }
+        .news-ticker { white-space: nowrap; animation: ticker 40s linear infinite; }
         @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-thumb { background: #333; }
     </style>
 </head>
 <body class="p-1">
-    <header class="flex justify-between items-center px-4 py-2 mb-1 glass rounded-lg border-b-2 border-purple-900/50">
+    <header class="flex justify-between items-center px-4 py-2 mb-1 glass rounded-lg border-b border-purple-900/40">
         <div class="flex items-center gap-6">
             <span class="neon-text font-black text-xl italic tracking-tighter">MONEYPRICE</span>
-            <div id="price-ticker-top" class="flex gap-4 text-[10px] font-bold">
-                <span class="text-zinc-500">BTC: <span id="ticker-btc" class="text-white">---</span></span>
-                <span class="text-zinc-500">ETH: <span id="ticker-eth" class="text-white">---</span></span>
-                <span class="text-zinc-500">SOL: <span id="ticker-sol" class="text-white">---</span></span>
+            <div id="price-ticker-top" class="flex gap-5 text-[9px] font-bold uppercase">
+                <span>BTC <span id="ticker-btc" class="text-white ml-1">---</span></span>
+                <span>ETH <span id="ticker-eth" class="text-white ml-1">---</span></span>
+                <span class="text-zinc-600">GAS: <span class="text-emerald-500">12 Gwei</span></span>
             </div>
         </div>
-        <div class="flex items-center gap-4">
-            <div class="relative">
-                <input type="text" id="asset-search" placeholder="SYMBL/TICKER..." 
-                    class="bg-zinc-900 border border-zinc-800 rounded px-4 py-1 text-[10px] w-64 focus:outline-none focus:border-purple-600 uppercase"
-                    onkeypress="handleSearch(event)">
-            </div>
-            <div class="h-6 w-[1px] bg-zinc-800"></div>
-            <span class="text-[9px] font-bold text-emerald-500 animate-pulse">● ENGINE_READY</span>
+        <div class="flex items-center gap-3">
+            <input type="text" id="asset-search" placeholder="QUICK SEARCH (CTRL+K)" 
+                class="bg-black border border-zinc-800 rounded px-4 py-1.5 text-[10px] w-72 focus:outline-none focus:border-purple-600 transition-all uppercase"
+                onkeypress="handleSearch(event)">
+            <button onclick="toggleTradePanel()" class="bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-black px-4 py-1.5 rounded-sm transition-all flex items-center gap-2">
+                <span class="animate-pulse">●</span> NEGOCIAR AGORA
+            </button>
         </div>
     </header>
 
     <div class="grid grid-cols-12 gap-1 flex-grow overflow-hidden">
-        <aside class="col-span-2 flex flex-col gap-1">
-            <div class="glass rounded-lg p-3 h-1/3">
-                <h3 class="text-[9px] font-bold text-zinc-600 mb-3 uppercase tracking-widest">Market Mood</h3>
-                <div class="flex flex-col items-center justify-center h-full gap-2">
-                    <span id="sentiment-label" class="text-2xl font-black text-zinc-700">NEUTRAL</span>
-                    <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden">
-                        <div id="sentiment-bar" class="h-full bg-zinc-700 w-1/2 transition-all duration-1000"></div>
-                    </div>
+        <aside class="col-span-2 flex flex-col gap-1 overflow-hidden">
+            <div class="glass rounded-lg p-3 flex-grow flex flex-col overflow-hidden">
+                <h3 class="text-[9px] font-bold text-zinc-600 mb-3 uppercase tracking-widest">Order Book</h3>
+                <div class="flex-grow overflow-hidden text-[9px] flex flex-col justify-between font-bold">
+                    <div id="asks" class="space-y-1 order-book-red"></div>
+                    <div id="spread" class="py-2 text-center border-y border-zinc-900 my-2 text-zinc-500">SPREAD: 0.01</div>
+                    <div id="bids" class="space-y-1 order-book-green"></div>
                 </div>
             </div>
-            <div class="glass rounded-lg p-3 flex-grow overflow-hidden flex flex-col">
-                <h3 class="text-[9px] font-bold text-zinc-600 mb-3 uppercase tracking-widest">Active Alerts</h3>
-                <div id="alert-feed" class="text-[9px] space-y-2 overflow-y-auto">
-                    <div class="p-2 bg-zinc-900/50 rounded border-l-2 border-purple-600">Sinal de compra detectado em SOL/USDT</div>
-                    <div class="p-2 bg-zinc-900/50 rounded border-l-2 border-zinc-700">Volume anormal em BTC (5min)</div>
+            <div class="glass rounded-lg p-3 h-1/4">
+                <h3 class="text-[9px] font-bold text-zinc-600 mb-2 uppercase">Sentiment</h3>
+                <div id="sentiment-label" class="text-xl font-black text-emerald-500">BULLISH</div>
+                <div class="w-full h-1 bg-zinc-900 rounded-full mt-2">
+                    <div id="sentiment-bar" class="bg-emerald-500 h-full w-[70%]"></div>
                 </div>
             </div>
         </aside>
 
-        <main class="col-span-10 flex flex-col glass rounded-lg overflow-hidden">
-            <div class="flex items-center justify-between p-2 border-b border-zinc-900 bg-zinc-900/20">
-                <div class="flex gap-2">
-                    <button onclick="changeInterval('1')" class="px-2 py-1 text-[9px] font-bold bg-zinc-900 hover:bg-zinc-800 rounded">1m</button>
-                    <button onclick="changeInterval('15')" class="px-2 py-1 text-[9px] font-bold bg-zinc-900 hover:bg-zinc-800 rounded">15m</button>
-                    <button onclick="changeInterval('60')" class="px-2 py-1 text-[9px] font-bold bg-zinc-900 hover:bg-zinc-800 rounded">1h</button>
-                    <button onclick="changeInterval('D')" class="px-2 py-1 text-[9px] font-bold bg-purple-900 rounded">1D</button>
+        <main class="col-span-8 flex flex-col glass rounded-lg overflow-hidden relative">
+            <div id="trade-panel" class="absolute top-4 right-4 z-50 glass p-4 rounded-xl border border-purple-500/50 w-64 shadow-2xl hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-[10px] font-black text-purple-400">EXECUTION CENTER</span>
+                    <button onclick="toggleTradePanel()" class="text-zinc-600 hover:text-white">✕</button>
                 </div>
-                <span id="active-pair" class="text-[10px] font-black text-zinc-400">BTCUSDT | BINANCE</span>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button class="bg-emerald-600/20 border border-emerald-500 text-emerald-500 font-bold py-2 rounded text-[10px] hover:bg-emerald-500 hover:text-white transition-all">BUY (B)</button>
+                    <button class="bg-red-600/20 border border-red-500 text-red-500 font-bold py-2 rounded text-[10px] hover:bg-red-500 hover:text-white transition-all">SELL (S)</button>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[8px] text-zinc-500 font-bold uppercase">Amount (USDT)</label>
+                        <input type="number" value="1000" class="w-full bg-black border border-zinc-800 p-2 text-xs rounded focus:border-purple-600 outline-none">
+                    </div>
+                    <button class="w-full bg-purple-600 py-3 rounded font-black text-[10px] mt-2 tracking-widest hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all">CONFIRM ORDER</button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between p-2 border-b border-zinc-900 bg-zinc-900/10">
+                <div class="flex gap-1">
+                    <button onclick="changeInterval('1')" class="px-2 py-1 text-[8px] font-bold hover:bg-zinc-800 rounded">1M</button>
+                    <button onclick="changeInterval('15')" class="px-2 py-1 text-[8px] font-bold hover:bg-zinc-800 rounded">15M</button>
+                    <button onclick="changeInterval('D')" class="px-2 py-1 text-[8px] font-bold bg-purple-900 rounded">1D</button>
+                </div>
+                <div id="active-pair" class="text-[9px] font-black text-zinc-500 tracking-widest">BTCUSDT | PERPETUAL</div>
             </div>
             <div id="tv-chart"></div>
         </main>
+
+        <aside class="col-span-2 flex flex-col gap-1 overflow-hidden">
+            <div class="glass rounded-lg p-3 flex-grow overflow-hidden">
+                <h3 class="text-[9px] font-bold text-zinc-600 mb-3 uppercase tracking-widest">Recent Trades</h3>
+                <div id="trade-history" class="text-[8px] space-y-2 overflow-y-auto h-full">
+                    </div>
+            </div>
+            <div class="glass rounded-lg p-3 h-1/3">
+                <h3 class="text-[9px] font-bold text-zinc-600 mb-2 uppercase">System Health</h3>
+                <div class="text-[9px] space-y-1">
+                    <div class="flex justify-between"><span class="text-zinc-500">Latency:</span><span class="text-emerald-500">14ms</span></div>
+                    <div class="flex justify-between"><span class="text-zinc-500">Server:</span><span class="text-white">AWS-GRU-1</span></div>
+                    <div class="flex justify-between"><span class="text-zinc-500">Volume 24h:</span><span class="text-white">$2.4B</span></div>
+                </div>
+            </div>
+        </aside>
     </div>
 
-    <footer class="h-8 glass mt-1 rounded-lg border-t border-zinc-900 flex items-center overflow-hidden">
-        <div class="bg-purple-900 px-3 h-full flex items-center text-[9px] font-bold z-10">NEWS_FEED</div>
-        <div class="news-ticker text-[10px] text-zinc-400 font-medium">
-            +++ FED MAINTAINS INTEREST RATES +++ BITCOIN ETF VOLUME REACHES NEW ALL-TIME HIGH +++ TECH STOCKS SURGE AS AI DEMAND GROWS +++ ETHEREUM L2 ADOPTION INCREASES 40% +++
+    <footer class="h-6 glass mt-1 rounded flex items-center overflow-hidden">
+        <div class="bg-purple-900 px-3 h-full flex items-center text-[8px] font-black z-10">FLASH_NEWS</div>
+        <div class="news-ticker text-[9px] text-zinc-500 font-bold italic">
+            +++ BTC BREAKS $67K RESISTANCE +++ ELON MUSK TWEETS ABOUT DOGE +++ ETH GAS PRICES AT 2-YEAR LOW +++ GLOBAL MARKETS OPEN IN GREEN +++ NVIDIA SURPASSES REVENUE EXPECTATIONS +++
         </div>
     </footer>
 
@@ -86,25 +119,17 @@
 
         function renderChart() {
             new TradingView.widget({
-                "autosize": true,
-                "symbol": symbol,
-                "interval": interval,
-                "timezone": "Etc/UTC",
-                "theme": "dark",
-                "style": "1",
-                "locale": "br",
-                "toolbar_bg": "#000000",
-                "enable_publishing": false,
-                "withdateranges": true,
-                "hide_side_toolbar": false, // Libera ferramentas de desenho
-                "allow_symbol_change": true,
-                "details": true,
-                "hotlist": true,
-                "calendar": true,
-                "container_id": "tv-chart",
-                "backgroundColor": "#000000",
-                "gridColor": "rgba(255, 255, 255, 0.05)"
+                "autosize": true, "symbol": symbol, "interval": interval,
+                "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "br",
+                "hide_side_toolbar": false, "withdateranges": true, "allow_symbol_change": true,
+                "details": true, "hotlist": true, "calendar": true,
+                "container_id": "tv-chart", "backgroundColor": "#000000", "gridColor": "rgba(255, 255, 255, 0.05)"
             });
+        }
+
+        function toggleTradePanel() {
+            const panel = document.getElementById('trade-panel');
+            panel.classList.toggle('hidden');
         }
 
         function handleSearch(e) {
@@ -112,52 +137,45 @@
                 let val = e.target.value.toUpperCase();
                 if(val) {
                     symbol = val.includes("4") || val.includes("3") ? `BMFBOVESPA:${val}` : `${val}USDT`;
-                    document.getElementById('active-pair').innerText = val + " | LIVE";
+                    document.getElementById('active-pair').innerText = val + " | PERPETUAL";
                     renderChart();
                     e.target.value = "";
                 }
             }
         }
 
-        function changeInterval(i) {
-            interval = i;
-            renderChart();
-        }
+        function changeInterval(i) { interval = i; renderChart(); }
 
-        async function fetchMarketData() {
-            try {
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true');
-                const data = await res.json();
-                
-                const update = (id, price) => {
-                    document.getElementById(id).innerText = `$${price.toLocaleString()}`;
-                };
-
-                update('ticker-btc', data.bitcoin.usd);
-                update('ticker-eth', data.ethereum.usd);
-                update('ticker-sol', data.solana.usd);
-
-                // Update Mood
-                const btcChange = data.bitcoin.usd_24h_change;
-                const label = document.getElementById('sentiment-label');
-                const bar = document.getElementById('sentiment-bar');
-                
-                if(btcChange > 1) {
-                    label.innerText = "BULLISH"; label.className = "text-2xl font-black text-emerald-500";
-                    bar.className = "h-full bg-emerald-500 transition-all duration-1000"; bar.style.width = "85%";
-                } else if(btcChange < -1) {
-                    label.innerText = "BEARISH"; label.className = "text-2xl font-black text-red-500";
-                    bar.className = "h-full bg-red-500 transition-all duration-1000"; bar.style.width = "20%";
-                } else {
-                    label.innerText = "NEUTRAL"; label.className = "text-2xl font-black text-zinc-500";
-                    bar.className = "h-full bg-zinc-500 transition-all duration-1000"; bar.style.width = "50%";
-                }
-            } catch(e) {}
+        // Simulação de Dados de Elite
+        function simulateData() {
+            const asks = document.getElementById('asks');
+            const bids = document.getElementById('bids');
+            const history = document.getElementById('trade-history');
+            
+            const generateRow = (color) => `<div class="flex justify-between opacity-80"><span>${(Math.random()*1000 + 66000).toFixed(1)}</span><span>${(Math.random()*2).toFixed(3)}</span></div>`;
+            
+            asks.innerHTML = Array(8).fill().map(() => generateRow()).join('');
+            bids.innerHTML = Array(8).fill().map(() => generateRow()).join('');
+            
+            const time = new Date().toLocaleTimeString();
+            const trade = `<div class="flex justify-between border-b border-zinc-900 pb-1">
+                <span class="${Math.random() > 0.5 ? 'text-emerald-500' : 'text-red-500'}">●</span>
+                <span>${(Math.random()*2).toFixed(4)} BTC</span>
+                <span class="text-zinc-600">${time}</span>
+            </div>`;
+            history.insertAdjacentHTML('afterbegin', trade);
+            if(history.children.length > 15) history.lastElementChild.remove();
         }
 
         renderChart();
-        fetchMarketData();
-        setInterval(fetchMarketData, 20000);
+        setInterval(simulateData, 1000);
+        
+        // Atalhos de Teclado
+        document.addEventListener('keydown', (e) => {
+            if(e.key.toLowerCase() === 'b' || e.key.toLowerCase() === 's') {
+                if(document.activeElement.tagName !== 'INPUT') toggleTradePanel();
+            }
+        });
     </script>
 </body>
 </html>
