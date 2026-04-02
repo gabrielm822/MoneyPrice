@@ -3,123 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONEYPRICE | Global Intelligence</title>
+    <title>MONEYPRICE | Ultra Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #030303; color: #ffffff; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .glass { background: rgba(12, 12, 12, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .purple-glow { box-shadow: 0 0 40px rgba(139, 92, 246, 0.07); }
-        #tv-chart { flex-grow: 1; min-height: 0; }
-        
-        /* Estilo do Autocomplete */
-        .suggestions-box {
-            position: absolute; top: 110%; left: 0; width: 100%; z-index: 50;
-            background: #121212; border: 1px solid #27272a; border-radius: 8px;
-            max-height: 200px; overflow-y: auto; display: none;
-        }
-        .suggestion-item { padding: 10px 15px; font-size: 11px; cursor: pointer; border-bottom: 1px solid #1a1a1a; }
-        .suggestion-item:hover { background: #8b5cf6; color: white; }
+        body { background: #000; color: #eee; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .glass { background: rgba(10, 10, 10, 0.8); border: 1px solid #222; }
+        .neon-border { border-bottom: 2px solid #8b5cf6; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2); }
+        #tv-chart { flex-grow: 1; border-radius: 0 0 12px 12px; }
+        .stat-card { border-left: 3px solid #333; transition: all 0.2s; }
+        .stat-card:hover { background: #111; border-left-color: #8b5cf6; }
+        input::placeholder { color: #444; }
     </style>
 </head>
-<body class="p-3">
-    <header class="flex justify-between items-center mb-4 px-2">
-        <div class="flex items-center gap-3">
-            <div class="px-2 py-1 bg-purple-600 text-[10px] font-black rounded uppercase tracking-tighter">Live</div>
-            <h1 class="text-xl font-black tracking-tighter uppercase italic text-zinc-200">MoneyPrice</h1>
+<body class="p-2">
+    <nav class="flex justify-between items-center px-4 py-2 mb-2 glass rounded-xl neon-border">
+        <div class="flex items-center gap-4">
+            <span class="text-purple-500 font-black italic text-xl tracking-tighter">MONEYPRICE</span>
+            <div class="h-4 w-[1px] bg-zinc-800"></div>
+            <div id="market-status" class="text-[10px] font-bold text-emerald-500 flex items-center gap-2">
+                <div class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div> LIVE_STREAM_CONNECTED
+            </div>
         </div>
-        
-        <div class="relative w-80">
-            <input type="text" id="asset-search" placeholder="BUSCAR ATIVO (EX: PE...)" 
-                class="bg-zinc-900 border border-zinc-800 px-5 py-2 rounded-full text-[11px] focus:outline-none focus:border-purple-500 w-full transition-all text-purple-100"
-                oninput="handleAutocomplete()" autocomplete="off">
-            <div id="suggestions" class="suggestions-box shadow-2xl"></div>
+        <div class="relative group">
+            <input type="text" id="asset-search" placeholder="BUSCAR ATIVO (BTC, ETH, PETR4...)" 
+                class="bg-black border border-zinc-800 rounded-lg px-4 py-1.5 text-xs w-96 focus:outline-none focus:border-purple-600 transition-all uppercase"
+                onkeypress="handleSearch(event)">
+            <div id="search-hint" class="absolute right-3 top-2 text-[9px] text-zinc-600 font-bold">ENTER ↵</div>
         </div>
-    </header>
+    </nav>
 
-    <main class="grid grid-cols-12 gap-4 flex-grow overflow-hidden">
-        <aside class="col-span-3 flex flex-col gap-4">
-            <div class="glass rounded-2xl p-5 flex-grow overflow-y-auto">
-                <h3 class="text-[10px] font-black text-purple-500 mb-6 tracking-[0.3em] uppercase">Tendências</h3>
-                <div id="trending-list" class="space-y-4"></div>
+    <div class="grid grid-cols-12 gap-2 flex-grow overflow-hidden">
+        <aside class="col-span-3 flex flex-col gap-2">
+            <div class="glass rounded-xl p-4 flex flex-col h-1/2">
+                <h3 class="text-[10px] font-bold text-zinc-500 mb-4 tracking-widest uppercase">Global Sentiment</h3>
+                <div id="sentiment-box" class="flex-grow flex flex-col justify-center items-center gap-2">
+                    <div id="sentiment-val" class="text-4xl font-black text-emerald-500">BULLISH</div>
+                    <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+                        <div id="sentiment-bar" class="bg-emerald-500 h-full w-[74%]"></div>
+                    </div>
+                    <p class="text-[9px] text-zinc-600 mt-2">VOLATILITY INDEX: 14.2% (LOW)</p>
+                </div>
+            </div>
+            
+            <div class="glass rounded-xl p-4 flex-grow overflow-y-auto">
+                <h3 class="text-[10px] font-bold text-zinc-500 mb-4 tracking-widest uppercase">Hot Watchlist</h3>
+                <div id="trending-list" class="space-y-3">
+                    </div>
             </div>
         </aside>
 
-        <section class="col-span-9 glass rounded-2xl overflow-hidden purple-glow flex flex-col">
-            <div class="p-5 border-b border-zinc-900 flex justify-between items-end">
+        <main class="col-span-9 flex flex-col gap-2 overflow-hidden">
+            <div class="glass rounded-xl p-6 flex justify-between items-center bg-gradient-to-r from-zinc-900/50 to-black">
                 <div>
-                    <span id="display-symbol" class="text-zinc-500 text-[10px] font-bold tracking-widest uppercase italic">Carregando...</span>
-                    <div id="main-price" class="text-5xl font-black tracking-tighter">$0.00</div>
-                    <div id="main-change" class="text-xs font-bold mt-2 inline-block px-2 py-0.5 rounded">0.00%</div>
+                    <h2 id="display-name" class="text-xs font-bold text-purple-400 mb-1">BITCOIN / US TETHER</h2>
+                    <div class="flex items-baseline gap-3">
+                        <span id="main-price" class="text-5xl font-black tracking-tighter">$66,997.40</span>
+                        <span id="main-change" class="text-sm font-bold text-emerald-500">+1.24%</span>
+                    </div>
                 </div>
-                <div class="text-right pb-1">
-                    <p class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mb-1">Status</p>
-                    <p class="text-[10px] text-emerald-500 font-black">STABLE STREAM</p>
+                <div class="flex gap-2">
+                    <button onclick="updateInterval('1')" class="px-3 py-1 bg-zinc-900 rounded text-[10px] font-bold hover:bg-purple-600 transition-colors">1M</button>
+                    <button onclick="updateInterval('60')" class="px-3 py-1 bg-zinc-900 rounded text-[10px] font-bold hover:bg-purple-600 transition-colors">1H</button>
+                    <button onclick="updateInterval('D')" class="px-3 py-1 bg-purple-600 rounded text-[10px] font-bold">1D</button>
                 </div>
             </div>
-            <div id="tv-chart">
-                <div id="tradingview_widget" class="w-full h-full"></div>
+
+            <div id="tv-chart" class="glass overflow-hidden">
+                <div id="tradingview_main" class="w-full h-full"></div>
             </div>
-        </section>
-    </main>
+        </main>
+    </div>
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
-        // Lista de sugestões
-        const assets = [
-            {t: "BTC", n: "Bitcoin", p: "BINANCE:BTCUSDT"},
-            {t: "ETH", n: "Ethereum", p: "BINANCE:ETHUSDT"},
-            {t: "SOL", n: "Solana", p: "BINANCE:SOLUSDT"},
-            {t: "PETR4", n: "Petrobras", p: "BMFBOVESPA:PETR4"},
-            {t: "VALE3", n: "Vale S.A.", p: "BMFBOVESPA:VALE3"},
-            {t: "MGLU3", n: "Magazine Luiza", p: "BMFBOVESPA:MGLU3"},
-            {t: "AAPL", n: "Apple Inc.", p: "NASDAQ:AAPL"},
-            {t: "TSLA", n: "Tesla Motors", p: "NASDAQ:TSLA"},
-            {t: "DOGE", n: "Dogecoin", p: "BINANCE:DOGEUSDT"}
-        ];
+        let currentSymbol = "BTC";
+        let currentInterval = "D";
 
-        function handleAutocomplete() {
-            const val = document.getElementById('asset-search').value.toUpperCase();
-            const box = document.getElementById('suggestions');
-            box.innerHTML = '';
-            
-            if (val.length > 0) {
-                const matches = assets.filter(a => a.t.includes(val) || a.n.toUpperCase().includes(val));
-                if (matches.length > 0) {
-                    box.style.display = 'block';
-                    matches.forEach(m => {
-                        const div = document.createElement('div');
-                        div.className = 'suggestion-item';
-                        div.innerHTML = `<strong>${m.t}</strong> - ${m.n}`;
-                        div.onclick = () => selectAsset(m);
-                        box.appendChild(div);
-                    });
-                } else { box.style.display = 'none'; }
-            } else { box.style.display = 'none'; }
-        }
+        function initChart(symbol, interval) {
+            let path = symbol.includes("4") || symbol.includes("3") ? `BMFBOVESPA:${symbol}` : `BINANCE:${symbol}USDT`;
+            if (symbol === "AAPL" || symbol === "TSLA") path = `NASDAQ:${symbol}`;
 
-        function selectAsset(asset) {
-            document.getElementById('asset-search').value = '';
-            document.getElementById('suggestions').style.display = 'none';
-            loadChart(asset.p, asset.t);
-        }
-
-        function loadChart(path, symbol) {
             new TradingView.widget({
-                "autosize": true, "symbol": path, "interval": "D",
-                "theme": "dark", "style": "1", "locale": "br",
-                "container_id": "tradingview_widget", "backgroundColor": "#030303",
+                "autosize": true,
+                "symbol": path,
+                "interval": interval,
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "br",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "tradingview_main",
+                "backgroundColor": "#000000",
                 "gridColor": "rgba(255, 255, 255, 0.03)"
             });
-            document.getElementById('display-symbol').innerText = symbol + " / MARKET";
+            document.getElementById('display-name').innerText = `${symbol} / LIVE DATA`;
+            updatePrices(symbol);
         }
 
-        // Esconder sugestões se clicar fora
-        document.addEventListener('click', (e) => {
-            if (e.target.id !== 'asset-search') document.getElementById('suggestions').style.display = 'none';
-        });
+        async function updatePrices(symbol) {
+            try {
+                const map = {"BTC":"bitcoin", "ETH":"ethereum", "SOL":"solana"};
+                const id = map[symbol] || "bitcoin";
+                const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true`);
+                const data = await res.json();
+                
+                const price = data[id].usd;
+                const change = data[id].usd_24h_change;
+                
+                document.getElementById('main-price').innerText = `$${price.toLocaleString()}`;
+                const chgEl = document.getElementById('main-change');
+                chgEl.innerText = `${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+                chgEl.className = `text-sm font-bold ${change >= 0 ? 'text-emerald-500' : 'text-red-500'}`;
+                
+                // Update Sentiment
+                const sentEl = document.getElementById('sentiment-val');
+                sentEl.innerText = change >= 0 ? "BULLISH" : "BEARISH";
+                sentEl.className = `text-4xl font-black ${change >= 0 ? 'text-emerald-500' : 'text-red-500'}`;
+                document.getElementById('sentiment-bar').className = `h-full ${change >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`;
+                document.getElementById('sentiment-bar').style.width = change >= 0 ? "78%" : "35%";
 
-        loadChart("BINANCE:BTCUSDT", "BTC");
+            } catch (e) { console.log("Price fetch error"); }
+        }
+
+        function handleSearch(e) {
+            if (e.key === 'Enter') {
+                const val = e.target.value.toUpperCase();
+                if (val) {
+                    currentSymbol = val;
+                    initChart(val, currentInterval);
+                    e.target.value = '';
+                }
+            }
+        }
+
+        function updateInterval(i) {
+            currentInterval = i;
+            initChart(currentSymbol, i);
+        }
+
+        async function loadTrending() {
+            const res = await fetch('https://api.coingecko.com/api/v3/search/trending');
+            const data = await res.json();
+            const list = document.getElementById('trending-list');
+            list.innerHTML = data.coins.slice(0, 5).map(c => `
+                <div class="stat-card bg-zinc-900/30 p-3 rounded-lg cursor-pointer" onclick="initChart('${c.item.symbol}', 'D')">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] font-bold">${c.item.symbol}</span>
+                        <span class="text-[9px] text-purple-400 font-black">TOP #${c.item.market_cap_rank}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize
+        initChart("BTC", "D");
+        loadTrending();
+        setInterval(() => updatePrices(currentSymbol), 10000);
     </script>
 </body>
 </html>
