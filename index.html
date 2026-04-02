@@ -3,97 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONEYPRICE | Global Market Terminal</title>
+    <title>MONEYPRICE | Global Intelligence</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #050505; color: #ffffff; font-family: 'Inter', sans-serif; overflow: hidden; }
-        .glass { background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .purple-glow { box-shadow: 0 0 20px rgba(139, 92, 246, 0.15); }
-        #tv-chart { height: calc(100vh - 180px); }
+        body { background-color: #030303; color: #ffffff; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .glass { background: rgba(12, 12, 12, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .purple-glow { box-shadow: 0 0 40px rgba(139, 92, 246, 0.07); }
+        #tv-chart { flex-grow: 1; min-height: 0; }
+        
+        /* Estilo do Autocomplete */
+        .suggestions-box {
+            position: absolute; top: 110%; left: 0; width: 100%; z-index: 50;
+            background: #121212; border: 1px solid #27272a; border-radius: 8px;
+            max-height: 200px; overflow-y: auto; display: none;
+        }
+        .suggestion-item { padding: 10px 15px; font-size: 11px; cursor: pointer; border-bottom: 1px solid #1a1a1a; }
+        .suggestion-item:hover { background: #8b5cf6; color: white; }
     </style>
 </head>
-<body class="p-4">
-    <header class="flex justify-between items-center mb-6 px-4">
-        <h1 class="text-2xl font-black tracking-tighter uppercase italic">MoneyPrice</h1>
-        <div class="flex gap-4">
-            <input type="text" placeholder="PESQUISAR ATIVO..." class="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-md text-xs focus:outline-none focus:border-purple-500 w-64">
+<body class="p-3">
+    <header class="flex justify-between items-center mb-4 px-2">
+        <div class="flex items-center gap-3">
+            <div class="px-2 py-1 bg-purple-600 text-[10px] font-black rounded uppercase tracking-tighter">Live</div>
+            <h1 class="text-xl font-black tracking-tighter uppercase italic text-zinc-200">MoneyPrice</h1>
+        </div>
+        
+        <div class="relative w-80">
+            <input type="text" id="asset-search" placeholder="BUSCAR ATIVO (EX: PE...)" 
+                class="bg-zinc-900 border border-zinc-800 px-5 py-2 rounded-full text-[11px] focus:outline-none focus:border-purple-500 w-full transition-all text-purple-100"
+                oninput="handleAutocomplete()" autocomplete="off">
+            <div id="suggestions" class="suggestions-box shadow-2xl"></div>
         </div>
     </header>
 
-    <main class="grid grid-cols-12 gap-4">
-        <section class="col-span-9 glass rounded-xl overflow-hidden purple-glow">
-            <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-                <div>
-                    <span class="text-purple-400 text-xs font-bold tracking-widest uppercase">Bitcoin / USD</span>
-                    <div id="btc-price" class="text-4xl font-black">$0.00</div>
-                    <span id="btc-change" class="text-sm font-medium text-zinc-500">0.00%</span>
-                </div>
-                <button class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold text-xs transition-all uppercase tracking-widest">Negociar Agora</button>
-            </div>
-            <div id="tv-chart">
-                <div class="tradingview-widget-container" style="height:100%;width:100%">
-                    <div id="tradingview_main" style="height:calc(100%);width:100%"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                    <script type="text/javascript">
-                        new TradingView.widget({
-                            "autosize": true,
-                            "symbol": "BINANCE:BTCUSDT",
-                            "interval": "D",
-                            "timezone": "Etc/UTC",
-                            "theme": "dark",
-                            "style": "1",
-                            "locale": "br",
-                            "toolbar_bg": "#f1f3f6",
-                            "enable_publishing": false,
-                            "hide_top_toolbar": false,
-                            "save_image": false,
-                            "container_id": "tradingview_main",
-                            "backgroundColor": "rgba(5, 5, 5, 1)",
-                            "gridColor": "rgba(255, 255, 255, 0.06)"
-                        });
-                    </script>
-                </div>
-            </div>
-        </section>
-
-        <aside class="col-span-3 space-y-4">
-            <div class="glass rounded-xl p-4 h-full">
-                <h3 class="text-xs font-bold text-zinc-500 mb-4 tracking-widest uppercase">Real-Time Market</h3>
-                <div id="market-list" class="space-y-4 text-sm font-medium">
-                    <div class="flex justify-between border-b border-zinc-800 pb-2">
-                        <span class="text-zinc-400">ETH</span>
-                        <span id="price-eth" class="text-white">Carregando...</span>
-                    </div>
-                    <div class="flex justify-between border-b border-zinc-800 pb-2">
-                        <span class="text-zinc-400">SOL</span>
-                        <span id="price-sol" class="text-white">Carregando...</span>
-                    </div>
-                </div>
+    <main class="grid grid-cols-12 gap-4 flex-grow overflow-hidden">
+        <aside class="col-span-3 flex flex-col gap-4">
+            <div class="glass rounded-2xl p-5 flex-grow overflow-y-auto">
+                <h3 class="text-[10px] font-black text-purple-500 mb-6 tracking-[0.3em] uppercase">Tendências</h3>
+                <div id="trending-list" class="space-y-4"></div>
             </div>
         </aside>
+
+        <section class="col-span-9 glass rounded-2xl overflow-hidden purple-glow flex flex-col">
+            <div class="p-5 border-b border-zinc-900 flex justify-between items-end">
+                <div>
+                    <span id="display-symbol" class="text-zinc-500 text-[10px] font-bold tracking-widest uppercase italic">Carregando...</span>
+                    <div id="main-price" class="text-5xl font-black tracking-tighter">$0.00</div>
+                    <div id="main-change" class="text-xs font-bold mt-2 inline-block px-2 py-0.5 rounded">0.00%</div>
+                </div>
+                <div class="text-right pb-1">
+                    <p class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mb-1">Status</p>
+                    <p class="text-[10px] text-emerald-500 font-black">STABLE STREAM</p>
+                </div>
+            </div>
+            <div id="tv-chart">
+                <div id="tradingview_widget" class="w-full h-full"></div>
+            </div>
+        </section>
     </main>
 
-    <footer class="mt-4 text-[10px] text-zinc-600 text-center uppercase tracking-[0.2em]">
-        MoneyPrice Terminal v2.0 • Built by Gabriel • Powered by CoinGecko & TradingView • 2026
-    </footer>
-
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
-        async function fetchPrices() {
-            try {
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true');
-                const data = await res.json();
-                
-                document.getElementById('btc-price').innerText = `$${data.bitcoin.usd.toLocaleString()}`;
-                const btcChange = data.bitcoin.usd_24h_change;
-                document.getElementById('btc-change').innerText = `${btcChange.toFixed(2)}%`;
-                document.getElementById('btc-change').style.color = btcChange >= 0 ? '#10b981' : '#ef4444';
-                
-                document.getElementById('price-eth').innerText = `$${data.ethereum.usd.toLocaleString()}`;
-                document.getElementById('price-sol').innerText = `$${data.solana.usd.toLocaleString()}`;
-            } catch (e) { console.log("Erro ao carregar preços"); }
+        // Lista de sugestões
+        const assets = [
+            {t: "BTC", n: "Bitcoin", p: "BINANCE:BTCUSDT"},
+            {t: "ETH", n: "Ethereum", p: "BINANCE:ETHUSDT"},
+            {t: "SOL", n: "Solana", p: "BINANCE:SOLUSDT"},
+            {t: "PETR4", n: "Petrobras", p: "BMFBOVESPA:PETR4"},
+            {t: "VALE3", n: "Vale S.A.", p: "BMFBOVESPA:VALE3"},
+            {t: "MGLU3", n: "Magazine Luiza", p: "BMFBOVESPA:MGLU3"},
+            {t: "AAPL", n: "Apple Inc.", p: "NASDAQ:AAPL"},
+            {t: "TSLA", n: "Tesla Motors", p: "NASDAQ:TSLA"},
+            {t: "DOGE", n: "Dogecoin", p: "BINANCE:DOGEUSDT"}
+        ];
+
+        function handleAutocomplete() {
+            const val = document.getElementById('asset-search').value.toUpperCase();
+            const box = document.getElementById('suggestions');
+            box.innerHTML = '';
+            
+            if (val.length > 0) {
+                const matches = assets.filter(a => a.t.includes(val) || a.n.toUpperCase().includes(val));
+                if (matches.length > 0) {
+                    box.style.display = 'block';
+                    matches.forEach(m => {
+                        const div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        div.innerHTML = `<strong>${m.t}</strong> - ${m.n}`;
+                        div.onclick = () => selectAsset(m);
+                        box.appendChild(div);
+                    });
+                } else { box.style.display = 'none'; }
+            } else { box.style.display = 'none'; }
         }
-        setInterval(fetchPrices, 10000);
-        fetchPrices();
+
+        function selectAsset(asset) {
+            document.getElementById('asset-search').value = '';
+            document.getElementById('suggestions').style.display = 'none';
+            loadChart(asset.p, asset.t);
+        }
+
+        function loadChart(path, symbol) {
+            new TradingView.widget({
+                "autosize": true, "symbol": path, "interval": "D",
+                "theme": "dark", "style": "1", "locale": "br",
+                "container_id": "tradingview_widget", "backgroundColor": "#030303",
+                "gridColor": "rgba(255, 255, 255, 0.03)"
+            });
+            document.getElementById('display-symbol').innerText = symbol + " / MARKET";
+        }
+
+        // Esconder sugestões se clicar fora
+        document.addEventListener('click', (e) => {
+            if (e.target.id !== 'asset-search') document.getElementById('suggestions').style.display = 'none';
+        });
+
+        loadChart("BINANCE:BTCUSDT", "BTC");
     </script>
 </body>
 </html>
